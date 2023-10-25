@@ -1,5 +1,6 @@
 package integrations.turnitin.com.membersearcher;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -8,6 +9,7 @@ import integrations.turnitin.com.membersearcher.client.MembershipBackendClient;
 import integrations.turnitin.com.membersearcher.model.Membership;
 import integrations.turnitin.com.membersearcher.model.MembershipList;
 import integrations.turnitin.com.membersearcher.model.User;
+import integrations.turnitin.com.membersearcher.model.UserList;
 import integrations.turnitin.com.membersearcher.service.MembershipService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +40,7 @@ public class MembershipServiceTest {
 	private User userOne;
 
 	private User userTwo;
+	private UserList userlist;
 
 	@BeforeEach
 	public void init() {
@@ -57,10 +63,14 @@ public class MembershipServiceTest {
 				.setId("2")
 				.setName("test two")
 				.setEmail("test2@example.com");
+		List<User> users=new ArrayList<>(2);
+		users.add(userOne);
+		users.add(userTwo);
+		userlist = new UserList();
+		userlist.setUsers(users);
 		when(membershipBackendClient.fetchMemberships()).thenReturn(CompletableFuture.completedFuture(members));
-		when(membershipBackendClient.fetchUser("1")).thenReturn(CompletableFuture.completedFuture(userOne));
-		when(membershipBackendClient.fetchUser("2")).thenReturn(CompletableFuture.completedFuture(userTwo));
-	}
+		when(membershipBackendClient.fetchUsers()).thenReturn(CompletableFuture.completedFuture(userlist));
+		}
 
 	@Test
 	public void TestFetchAllMemberships() throws Exception {
@@ -68,5 +78,8 @@ public class MembershipServiceTest {
 		MembershipList members = membershipService.fetchAllMembershipsWithUsers().get();
 		assertThat(members.getMemberships().get(0).getUser()).isEqualTo(userOne);
 		assertThat(members.getMemberships().get(1).getUser()).isEqualTo(userTwo);
+		verify(membershipBackendClient, times(1)).fetchMemberships();
+		verify(membershipBackendClient, times(1)).fetchUsers();
+		verifyNoMoreInteractions(membershipBackendClient);
 	}
 }
